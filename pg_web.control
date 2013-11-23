@@ -1,0 +1,6 @@
+# pg_web extension
+comment = 'PostgreSQL extension which provide web interface for database'
+default_version = '0.1.0'
+module_pathname = '$libdir/pg_web'
+relocatable = true
+superuser = true

@@ -1,42 +1,43 @@
 {
-   "name": "pg_web",
-   "abstract": "PostgreSQL extension which provide web interface for database",
-   "version": "0.1.0",
-   "maintainer": "Alexey Vasiliev <leopard.not.a@gmail.com>",
-   "license": {
-      "PostgreSQL": "http://www.postgresql.org/about/licence"
-   },
-   "prereqs": {
-      "runtime": {
-         "requires": {
-            "PostgreSQL": "9.3.0"
-         }
-      }
-   },
-   "provides": {
-      "config_log": {
-         "abstract": "PostgreSQL extension which provide web interface for database",
-         "file": "pg_web--0.1.0.sql",
-         "docfile": "README.md",
-         "version": "0.1.0"
-      }
-   },
-   "resources": {
-      "repository": {
-        "url":  "git@github.com:le0pard/pg_web.git",
-        "web":  "https://github.com/le0pard/pg_web",
-        "type": "git"
-      }
-   },
-   "meta-spec": {
-      "version": "1.0.0",
-      "url": "http://pgxn.org/meta/spec.txt"
-   },
-   "generated_by": "Alexey Vasiliev",
-   "tags": [
-    "web",
-    "http",
-    "rest",
-    "bgw"
-   ]
+    "abstract": "PostgreSQL extension which provide web interface for database",
+    "generated_by": "Alexey Vasiliev",
+    "license": {
+        "PostgreSQL": "http://www.postgresql.org/about/licence"
+    },
+    "maintainer": "Alexey Vasiliev <leopard.not.a@gmail.com>",
+    "meta-spec": {
+        "url": "http://pgxn.org/meta/spec.txt",
+        "version": "1.0.0"
+    },
+    "name": "pg_web",
+    "prereqs": {
+        "runtime": {
+            "requires": {
+                "PostgreSQL": "9.3.0"
+            }
+        }
+    },
+    "provides": {
+        "config_log": {
+            "abstract": "PostgreSQL extension which provide web interface for database",
+            "docfile": "README.md",
+            "file": "pg_web--0.1.0.sql",
+            "version": "0.1.0"
+        }
+    },
+    "resources": {
+        "repository": {
+            "type": "git",
+            "url": "git@github.com:le0pard/pg_web.git",
+            "web": "https://github.com/le0pard/pg_web"
+        }
+    },
+    "tags": [
+        "web",
+        "http",
+        "rest",
+        "bgw"
+    ],
+    "version": "0.1.0"
 }
+

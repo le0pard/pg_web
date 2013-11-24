@@ -4,6 +4,8 @@ EXTVERSION   = $(shell grep default_version $(EXTENSION).control | \
 				sed -e "s/default_version[[:space:]]*=[[:space:]]*'\([^']*\)'/\1/")
 
 #SHLIB_LINK   = -ldl -lpthread
+PG_CPPFLAGS = -I$(libpq_srcdir)
+SHLIB_LINK = $(libpq)
 
 DATA         = $(filter-out $(wildcard sql/*--*.sql),$(wildcard sql/*.sql))
 TESTS        = $(wildcard test/sql/*.sql)

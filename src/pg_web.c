@@ -12,6 +12,7 @@
  */
 
 #include "postgres.h"
+#include "libpq-fe.h"
 
 /* Following are required for all bgworker */
 #include "miscadmin.h"
@@ -91,51 +92,59 @@ static int http_event_handler(struct mg_event *event)
   {
     int                 content_length;
     char                content[150];
-    /*
-    int                 ret;
-    StringInfoData      buf;
-    int32               count = 0;
-    bool                isnull;
 
-    InitPostgres("postgres", InvalidOid, NULL, NULL);
+    const char *conninfo = "dbname = postgres";
+    PGconn     *conn;
+    PGresult   *res;
+    int32       count = 0;
 
-    SetCurrentStatementStartTimestamp();
-    StartTransactionCommand();
-    SPI_connect();
-    PushActiveSnapshot(GetTransactionSnapshot());
-    pgstat_report_activity(STATE_RUNNING, "executing configuration logger function");
+    /* Make a connection to the database */
+    conn = PQconnectdb(conninfo);
 
-    initStringInfo(&buf);
+    /* Check to see that the backend connection was successfully made */
+    if (PQstatus(conn) == CONNECTION_OK)
+    {
+      /* Start a transaction block */
+      res = PQexec(conn, "BEGIN");
+      if (PQresultStatus(res) == PGRES_COMMAND_OK)
+      {
+          PQclear(res);
 
-    appendStringInfo(&buf, "SELECT COUNT(*) FROM pg_class;");
+          res = PQexec(conn, "SELECT COUNT(*) FROM pg_class;");
+          if (PQresultStatus(res) == PGRES_TUPLES_OK)
+          {
+              count = atoi(PQgetvalue(res,0,0));
 
-    ret = SPI_execute(buf.data, true, 0);
+              PQclear(res);
 
-    if (ret != SPI_OK_SELECT) {
-      ereport(FATAL, (errmsg("SPI_execute failed: SPI error code %d", ret)));
+              /* end the transaction */
+              res = PQexec(conn, "END");
+              PQclear(res);
+
+              /* close the connection to the database and cleanup */
+              PQfinish(conn);
+
+          } else {
+            ereport( INFO, (errmsg( "SELECT error %s\n", PQerrorMessage(conn) )));
+
+            PQclear(res);
+            /* close the connection to the database and cleanup */
+            PQfinish(conn);
+          }
+
+      } else {
+        ereport( INFO, (errmsg( "BEGIN error %s\n", PQerrorMessage(conn) )));
+
+        PQclear(res);
+        /* close the connection to the database and cleanup */
+        PQfinish(conn);
+      }
+
     }
-
-    if (SPI_processed != 1){
-      elog(FATAL, "not a singleton result");
-    }
-
-    count = DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[0],
-                                               SPI_tuptable->tupdesc,
-                                               1, &isnull));
-
-    if (isnull){
-      elog(FATAL, "null result");
-    }
-
-    SPI_finish();
-    PopActiveSnapshot();
-    CommitTransactionCommand();
-    pgstat_report_activity(STATE_IDLE, NULL);
-    */
     // Prepare the message we're going to send
     content_length = snprintf(content, sizeof(content),
-        "Hello from pg_web! Requested: [%s] [%s]",
-        event->request_info->request_method, event->request_info->uri);
+        "Hello from pg_web! Requested: [%s] [%s], %d",
+        event->request_info->request_method, event->request_info->uri, count);
 
     // Send HTTP reply to the client
     mg_printf(event->conn,
@@ -168,7 +177,7 @@ pg_web_main(Datum main_arg)
   const char *options[] = {
     "listening_ports", pg_web_setting_port_str,
     "enable_keep_alive", "yes",
-    "num_threads", "5",
+    "num_threads", "20",
     NULL};
 
   /* Set up the sigterm signal before unblocking them */
@@ -178,7 +187,8 @@ pg_web_main(Datum main_arg)
   BackgroundWorkerUnblockSignals();
 
   /* Connect to our database */
-  //BackgroundWorkerInitializeConnection("postgres", NULL);
+  /* not used, but can be used in loop */
+  /* BackgroundWorkerInitializeConnection("postgres", NULL); */
 
   // Start the web server.
   mongoose_ctx = mg_start(options, &http_event_handler, NULL);
@@ -198,7 +208,7 @@ pg_web_main(Datum main_arg)
 
     /* Emergency bailout if postmaster has died */
     if (rc & WL_POSTMASTER_DEATH)
-    pg_web_exit(1);
+      pg_web_exit(1);
 
     /*elog(LOG, "Hello World!");*/ /* Say Hello to the world */
   }

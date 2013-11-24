@@ -1,5 +1,5 @@
 /*
- * config_log.c
+ * pg_web.c
  *
  * PostgreSQL extension with web interface
  *
@@ -8,7 +8,7 @@
  * leopard.not.a@gmail.com
  *
  * Copyright 2013 Alexey Vasiliev. This program is Free
- * Software; see the README.md file for the license conditions.
+ * Software; see the LICENSE file for the license conditions.
  */
 
 #include "postgres.h"

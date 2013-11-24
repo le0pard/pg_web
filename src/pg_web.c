@@ -141,10 +141,24 @@ static int http_event_handler(struct mg_event *event)
       }
 
     }
+
     // Prepare the message we're going to send
     content_length = snprintf(content, sizeof(content),
-        "Hello from pg_web! Requested: [%s] [%s], %d",
-        event->request_info->request_method, event->request_info->uri, count);
+        "Hello from pg_web! Requested: [%s] [%s], headers: %d, Auth: %s, %d",
+        event->request_info->request_method, event->request_info->uri, event->request_info->num_headers, mg_get_header(event->conn, "Authorization"), count);
+
+    // Send 401 HTTP reply to the client
+    /*
+    int http_code = 401;
+    mg_printf(event->conn,
+        "HTTP/1.1 %d Unauthorized\r\n"
+        "Content-Type: text/plain\r\n"
+        "Status: %d Unauthorized\r\n"
+        "Www-Authenticate: Basic realm=\"\"\r\n"
+        "Content-Length: 0\r\n"        // Always set Content-Length
+        "\r\n",
+        http_code, http_code);
+    */
 
     // Send HTTP reply to the client
     mg_printf(event->conn,

@@ -40,7 +40,8 @@ void _PG_init(void);
 static volatile sig_atomic_t got_sigterm = false;
 
 /* GUC variables */
-/*static bool pg_web_enabled = true;*/
+static int pg_web_setting_port; //http port int
+static char pg_web_setting_port_str[5]; //http port str
 
 /* web server */
 static struct mg_context *mongoose_ctx;
@@ -111,7 +112,7 @@ static void
 pg_web_main(Datum main_arg)
 {
         // List of options. Last element must be NULL.
-        const char *options[] = {"listening_ports", "8080", NULL};
+        const char *options[] = {"listening_ports", pg_web_setting_port_str, NULL};
 
         /* Set up the sigterm signal before unblocking them */
         pqsignal(SIGTERM, pg_web_sigterm);
@@ -125,6 +126,8 @@ pg_web_main(Datum main_arg)
 
         // Start the web server.
         mongoose_ctx = mg_start(&mongoose_callbacks, NULL, options);
+
+        ereport( INFO, (errmsg( "Start web server on port %s\n", pg_web_setting_port_str )));
 
         /* begin loop */
         while (!got_sigterm)
@@ -147,6 +150,16 @@ pg_web_main(Datum main_arg)
 }
 
 /*
+ * pg_web_setting_port_hook
+ *
+ * Hook for setting port
+ */
+static void pg_web_setting_port_hook(int newval, void *extra)
+{
+   sprintf(pg_web_setting_port_str, "%d", newval);
+}
+
+/*
  * Entrypoint of this module.
  */
 void
@@ -155,20 +168,22 @@ _PG_init(void)
 	BackgroundWorker	worker;
 
 	/* get GUC settings, if available */
-  /*
-	DefineCustomStringVariable(
-      "pg_web.enabled",
-      "Is pg_web enabled",
-      "pg_web is enabled (default: true).",
-      &pg_web_enabled,
-      true,
+
+	DefineCustomIntVariable(
+      "pg_web.port",
+      "HTTP port for pg_web",
+      "HTTP port for pg_web (default: 8080).",
+      &pg_web_setting_port,
+      8080,
+      10,
+      65000,
       PGC_POSTMASTER,
       0,
       NULL,
-      NULL,
+      pg_web_setting_port_hook,
       NULL
     );
-  */
+
 	/* register the worker processes */
 	worker.bgw_flags = BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION;
 	worker.bgw_start_time = BgWorkerStart_RecoveryFinished;

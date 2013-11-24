@@ -1,7 +1,7 @@
 EXTENSION    = $(shell grep -m 1 '"name":' META.json | \
-													sed -e 's/[[:space:]]*"name":[[:space:]]*"\([^"]*\)",/\1/')
+				sed -e 's/[[:space:]]*"name":[[:space:]]*"\([^"]*\)",/\1/')
 EXTVERSION   = $(shell grep default_version $(EXTENSION).control | \
-                          sed -e "s/default_version[[:space:]]*=[[:space:]]*'\([^']*\)'/\1/")
+				sed -e "s/default_version[[:space:]]*=[[:space:]]*'\([^']*\)'/\1/")
 
 #SHLIB_LINK   = -ldl -lpthread
 
@@ -34,4 +34,4 @@ include $(PGXS)
 
 
 dist:
-        git archive --format zip --prefix=$(EXTENSION)-$(EXTVERSION)/ -o $(EXTENSION)-$(EXTVERSION).zip HEAD
+				git archive --format zip --prefix=$(EXTENSION)-$(EXTVERSION)/ -o $(EXTENSION)-$(EXTVERSION).zip HEAD

@@ -191,6 +191,9 @@ pg_web_main(Datum main_arg)
   const char *options[] = {
     "listening_ports", pg_web_setting_port_str,
     "enable_keep_alive", "yes",
+    "enable_directory_listing", "no",
+    "index_files", "index.html",
+    "request_timeout_ms", "30000",
     "num_threads", "20",
     NULL};
 

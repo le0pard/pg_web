@@ -1,4 +1,5 @@
-EXTENSION    = pg_web
+EXTENSION    = $(shell grep -m 1 '"name":' META.json | \
+													sed -e 's/[[:space:]]*"name":[[:space:]]*"\([^"]*\)",/\1/')
 EXTVERSION   = $(shell grep default_version $(EXTENSION).control | \
                           sed -e "s/default_version[[:space:]]*=[[:space:]]*'\([^']*\)'/\1/")
 

@@ -73,8 +73,11 @@ pg_web_exit(int code)
   proc_exit(code);
 }
 
-
-// This function will be called by mongoose on every new request.
+/*
+ * begin_request_handler
+ *
+ * This function will be called by mongoose on every new request.
+ */
 static int begin_request_handler(struct mg_connection *conn) {
   const struct mg_request_info *request_info = mg_get_request_info(conn);
   char content[100];

@@ -163,7 +163,11 @@ static void
 pg_web_main(Datum main_arg)
 {
         // List of options. Last element must be NULL.
-        const char *options[] = {"listening_ports", pg_web_setting_port_str, NULL};
+        const char *options[] = {
+                      "listening_ports", pg_web_setting_port_str,
+                      "enable_keep_alive", "yes",
+                      "num_threads", "5",
+                      NULL};
 
         /* Set up the sigterm signal before unblocking them */
         pqsignal(SIGTERM, pg_web_sigterm);

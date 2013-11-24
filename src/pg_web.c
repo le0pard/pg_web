@@ -75,31 +75,35 @@ pg_web_exit(int code)
 }
 
 /*
- * begin_request_handler
+ * http_event_handler
  *
  * This function will be called by mongoose on every new request.
  */
-static int begin_request_handler(struct mg_connection *conn) {
-  const struct mg_request_info *request_info = mg_get_request_info(conn);
-  char content[100];
+static int http_event_handler(struct mg_event *event) {
+  if (event->type == MG_REQUEST_BEGIN) {
+    char content[100];
 
-  // Prepare the message we're going to send
-  int content_length = snprintf(content, sizeof(content),
-                                "Hello from pg_web! Remote port: %d",
-                                request_info->remote_port);
+    // Prepare the message we're going to send
+    int content_length = snprintf(content, sizeof(content),
+        "Hello from pg_web! Requested: [%s] [%s]",
+        event->request_info->request_method, event->request_info->uri);
 
-  // Send HTTP reply to the client
-  mg_printf(conn,
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: %d\r\n"        // Always set Content-Length
-            "\r\n"
-            "%s",
-            content_length, content);
+    // Send HTTP reply to the client
+    mg_printf(event->conn,
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: %d\r\n"        // Always set Content-Length
+        "\r\n"
+        "%s",
+        content_length, content);
 
-  // Returning non-zero tells mongoose that our function has replied to
-  // the client, and mongoose should not send client any more data.
-  return 1;
+    // Returning non-zero tells mongoose that our function has replied to
+    // the client, and mongoose should not send client any more data.
+    return 1;
+  }
+
+  // We do not handle any other event
+  return 0;
 }
 
 
@@ -120,12 +124,8 @@ pg_web_main(Datum main_arg)
         /* We're now ready to receive signals */
         BackgroundWorkerUnblockSignals();
 
-        // Prepare callbacks structure. We have only one callback, the rest are NULL.
-        memset(&mongoose_callbacks, 0, sizeof(mongoose_callbacks));
-        mongoose_callbacks.begin_request = begin_request_handler;
-
         // Start the web server.
-        mongoose_ctx = mg_start(&mongoose_callbacks, NULL, options);
+        mongoose_ctx = mg_start(options, &http_event_handler, NULL);
 
         ereport( INFO, (errmsg( "Start web server on port %s\n", pg_web_setting_port_str )));
 

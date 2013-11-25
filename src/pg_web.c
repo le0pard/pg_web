@@ -12,7 +12,6 @@
  */
 
 #include "postgres.h"
-#include "libpq-fe.h"
 
 /* Following are required for all bgworker */
 #include "miscadmin.h"
@@ -93,54 +92,43 @@ static int http_event_handler(struct mg_event *event)
     int                 content_length;
     char                content[150];
 
-    const char *conninfo = "dbname = postgres";
-    PGconn     *conn;
-    PGresult   *res;
-    int32       count = 0;
+    int                 ret;
+    StringInfoData      buf;
+    int32               count = 0;
+    bool                isnull;
 
-    /* Make a connection to the database */
-    conn = PQconnectdb(conninfo);
+    SetCurrentStatementStartTimestamp();
+    StartTransactionCommand();
+    SPI_connect();
+    PushActiveSnapshot(GetTransactionSnapshot());
+    pgstat_report_activity(STATE_RUNNING, "executing configuration logger function");
 
-    /* Check to see that the backend connection was successfully made */
-    if (PQstatus(conn) == CONNECTION_OK)
-    {
-      /* Start a transaction block */
-      res = PQexec(conn, "BEGIN");
-      if (PQresultStatus(res) == PGRES_COMMAND_OK)
-      {
-          PQclear(res);
+    initStringInfo(&buf);
 
-          res = PQexec(conn, "SELECT COUNT(*) FROM pg_class;");
-          if (PQresultStatus(res) == PGRES_TUPLES_OK)
-          {
-              count = atoi(PQgetvalue(res,0,0));
+    appendStringInfo(&buf, "SELECT COUNT(*) FROM pg_class;");
 
-              PQclear(res);
+    ret = SPI_execute(buf.data, true, 0);
 
-              /* end the transaction */
-              res = PQexec(conn, "END");
-              PQclear(res);
-
-              /* close the connection to the database and cleanup */
-              PQfinish(conn);
-
-          } else {
-            ereport( INFO, (errmsg( "SELECT error %s\n", PQerrorMessage(conn) )));
-
-            PQclear(res);
-            /* close the connection to the database and cleanup */
-            PQfinish(conn);
-          }
-
-      } else {
-        ereport( INFO, (errmsg( "BEGIN error %s\n", PQerrorMessage(conn) )));
-
-        PQclear(res);
-        /* close the connection to the database and cleanup */
-        PQfinish(conn);
-      }
-
+    if (ret != SPI_OK_SELECT) {
+      ereport(FATAL, (errmsg("SPI_execute failed: SPI error code %d", ret)));
     }
+
+    if (SPI_processed != 1){
+      elog(FATAL, "not a singleton result");
+    }
+
+    count = DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[0],
+                                               SPI_tuptable->tupdesc,
+                                               1, &isnull));
+
+    if (isnull){
+      elog(FATAL, "null result");
+    }
+
+    SPI_finish();
+    PopActiveSnapshot();
+    CommitTransactionCommand();
+    pgstat_report_activity(STATE_IDLE, NULL);
 
     // Prepare the message we're going to send
     content_length = snprintf(content, sizeof(content),
@@ -204,8 +192,7 @@ pg_web_main(Datum main_arg)
   BackgroundWorkerUnblockSignals();
 
   /* Connect to our database */
-  /* not used, but can be used in loop */
-  /* BackgroundWorkerInitializeConnection("postgres", NULL); */
+  BackgroundWorkerInitializeConnection("postgres", NULL);
 
   // Start the web server.
   mongoose_ctx = mg_start(options, &http_event_handler, NULL);

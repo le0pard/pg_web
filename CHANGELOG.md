@@ -2,10 +2,9 @@
 
 * release
 
-PG_CPPFLAGS = -I$(libpq_srcdir)
-SHLIB_LINK = $(libpq)
 
-#include "libpq-fe.h"
+
+
 
 const char *conninfo = "dbname = postgres";
 PGconn     *conn;

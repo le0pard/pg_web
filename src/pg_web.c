@@ -35,7 +35,7 @@
 /* web server */
 #include <stdio.h>
 #include <string.h>
-#include "mongoose.h"
+#include "web_server.h"
 
 /* Essential for shared libs! */
 PG_MODULE_MAGIC;
@@ -49,9 +49,6 @@ static volatile sig_atomic_t got_sigterm = false;
 /* GUC variables */
 static int pg_web_setting_port; //http port int
 static char pg_web_setting_port_str[5]; //http port str
-
-/* web server */
-static struct mg_context *mongoose_ctx;
 
 /*
  * pg_web_sigterm
@@ -76,94 +73,8 @@ pg_web_sigterm(SIGNAL_ARGS)
 static void
 pg_web_exit(int code)
 {
-  mg_stop(mongoose_ctx);
   proc_exit(code);
-}
-
-/*
- * http_event_handler
- *
- * This function will be called by mongoose on every new request.
- */
-static int http_event_handler(struct mg_event *event)
-{
-  if (event->type == MG_REQUEST_BEGIN)
-  {
-    int                 content_length;
-    char                content[150];
-
-    int                 ret;
-    StringInfoData      buf;
-    int32               count = 0;
-    bool                isnull;
-
-    SetCurrentStatementStartTimestamp();
-    StartTransactionCommand();
-    SPI_connect();
-    PushActiveSnapshot(GetTransactionSnapshot());
-    pgstat_report_activity(STATE_RUNNING, "executing configuration logger function");
-
-    initStringInfo(&buf);
-
-    appendStringInfo(&buf, "SELECT COUNT(*) FROM pg_class;");
-
-    ret = SPI_execute(buf.data, true, 0);
-
-    if (ret != SPI_OK_SELECT) {
-      ereport(FATAL, (errmsg("SPI_execute failed: SPI error code %d", ret)));
-    }
-
-    if (SPI_processed != 1){
-      elog(FATAL, "not a singleton result");
-    }
-
-    count = DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[0],
-                                               SPI_tuptable->tupdesc,
-                                               1, &isnull));
-
-    if (isnull){
-      elog(FATAL, "null result");
-    }
-
-    SPI_finish();
-    PopActiveSnapshot();
-    CommitTransactionCommand();
-    pgstat_report_activity(STATE_IDLE, NULL);
-
-    // Prepare the message we're going to send
-    content_length = snprintf(content, sizeof(content),
-        "Hello from pg_web! Requested: [%s] [%s], headers: %d, Auth: %s, %d",
-        event->request_info->request_method, event->request_info->uri, event->request_info->num_headers, mg_get_header(event->conn, "Authorization"), count);
-
-    // Send 401 HTTP reply to the client
-    /*
-    int http_code = 401;
-    mg_printf(event->conn,
-        "HTTP/1.1 %d Unauthorized\r\n"
-        "Content-Type: text/plain\r\n"
-        "Status: %d Unauthorized\r\n"
-        "Www-Authenticate: Basic realm=\"\"\r\n"
-        "Content-Length: 0\r\n"        // Always set Content-Length
-        "\r\n",
-        http_code, http_code);
-    */
-
-    // Send HTTP reply to the client
-    mg_printf(event->conn,
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/plain\r\n"
-        "Content-Length: %d\r\n"        // Always set Content-Length
-        "\r\n"
-        "%s",
-        content_length, content);
-
-    // Returning non-zero tells mongoose that our function has replied to
-    // the client, and mongoose should not send client any more data.
-    return 1;
-  }
-
-  // We do not handle any other event
-  return 0;
+  exit(code);
 }
 
 
@@ -175,15 +86,35 @@ static int http_event_handler(struct mg_event *event)
 static void
 pg_web_main(Datum main_arg)
 {
-  // List of options. Last element must be NULL.
-  const char *options[] = {
-    "listening_ports", pg_web_setting_port_str,
-    "enable_keep_alive", "yes",
-    "enable_directory_listing", "no",
-    "index_files", "index.html",
-    "request_timeout_ms", "30000",
-    "num_threads", "20",
-    NULL};
+  /*
+  char response[] = "HTTP/1.1 200 OK\r\n"
+  "Content-Type: text/html; charset=UTF-8\r\n\r\n"
+  "<doctype !html><html><head><title>Bye-bye baby bye-bye</title>"
+  "<style>body { background-color: #111 }"
+  "h1 { font-size:4cm; text-align: center; color: black;"
+  " text-shadow: 0 0 2mm red}</style></head>"
+  "<body><h1>Goodbye, world!</h1></body></html>\r\n";
+
+  int one = 1, client_fd;
+  struct sockaddr_in svr_addr, cli_addr;
+  socklen_t sin_len = sizeof(cli_addr);
+
+  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0) ereport( INFO, (errmsg( "can't open socket\n" )));
+
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int));
+
+  int port = 8080;
+  svr_addr.sin_family = AF_INET;
+  svr_addr.sin_addr.s_addr = INADDR_ANY;
+  svr_addr.sin_port = htons(port);
+
+  if (bind(sock, (struct sockaddr *) &svr_addr, sizeof(svr_addr)) == -1) {
+    close(sock);
+    ereport( INFO, (errmsg( "Can't bind\n" )));
+  }
+
+  listen(sock, 5);*/
 
   /* Set up the sigterm signal before unblocking them */
   pqsignal(SIGTERM, pg_web_sigterm);
@@ -194,9 +125,6 @@ pg_web_main(Datum main_arg)
   /* Connect to our database */
   BackgroundWorkerInitializeConnection("postgres", NULL);
 
-  // Start the web server.
-  mongoose_ctx = mg_start(options, &http_event_handler, NULL);
-
   ereport( INFO, (errmsg( "Start web server on port %s\n", pg_web_setting_port_str )));
 
   /* begin loop */
@@ -204,17 +132,24 @@ pg_web_main(Datum main_arg)
   {
     int rc;
 
-    /* Wait 10s */
+    /* Wait 1s */
     rc = WaitLatch(&MyProc->procLatch,
       WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-      10000L);
+      1000L);
     ResetLatch(&MyProc->procLatch);
 
     /* Emergency bailout if postmaster has died */
     if (rc & WL_POSTMASTER_DEATH)
       pg_web_exit(1);
 
-    /*elog(LOG, "Hello World!");*/ /* Say Hello to the world */
+    elog(LOG, "Hello World!"); /* Say Hello to the world */
+    /*client_fd = accept(sock, (struct sockaddr *) &cli_addr, &sin_len);
+    if (client_fd == -1) {
+      continue;
+    }
+
+    write(client_fd, response, sizeof(response) - 1);
+    close(client_fd);*/
   }
   pg_web_exit(0);
 }

@@ -1,7 +1,7 @@
 {
     "abstract": "PostgreSQL extension which provide web interface for database",
     "generated_by": "Alexey Vasiliev",
-    "license": "gpl_2",
+    "license": "mit",
     "maintainer": "Alexey Vasiliev <leopard.not.a@gmail.com>",
     "meta-spec": {
         "url": "http://pgxn.org/meta/spec.txt",

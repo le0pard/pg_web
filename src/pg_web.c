@@ -92,7 +92,7 @@ pg_web_main(Datum main_arg)
   BackgroundWorkerUnblockSignals();
 
   /* Connect to our database */
-  /*BackgroundWorkerInitializeConnection("postgres", NULL);*/
+  BackgroundWorkerInitializeConnection("postgres", NULL);
 
   ereport( INFO, (errmsg( "Start web server on port %s\n", pg_web_setting_port_str )));
 
@@ -111,7 +111,7 @@ pg_web_main(Datum main_arg)
     if (rc & WL_POSTMASTER_DEATH)
       pg_web_exit(1);
 
-    /*elog(LOG, "Hello World!");*/ /* Say Hello to the world */
+    elog(LOG, "Hello World from pg_web!"); /* Say Hello to the world */
   }
   pg_web_exit(0);
 }

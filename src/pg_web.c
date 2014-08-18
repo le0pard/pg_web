@@ -111,7 +111,7 @@ pg_web_main(Datum main_arg)
     if (rc & WL_POSTMASTER_DEATH)
       pg_web_exit(1);
 
-    elog(LOG, "Hello World from pg_web!"); /* Say Hello to the world */
+    elog(LOG, "Hello from pg_web! By I should be a HTTP server."); /* Say Hello to the world */
   }
   pg_web_exit(0);
 }

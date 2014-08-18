@@ -11,3 +11,15 @@
  * Software; see the LICENSE file for the license conditions.
  */
 
+#include <time.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <assert.h>
+#include <string.h>
+#include <ctype.h>
+#include <limits.h>
+#include <stddef.h>
+#include <stdio.h>
+
+
+#include "vendors/dyad/dyad.h"

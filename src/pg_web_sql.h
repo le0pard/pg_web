@@ -10,3 +10,5 @@
  * Copyright 2013 Alexey Vasiliev. This program is Free
  * Software; see the LICENSE file for the license conditions.
  */
+
+#include "libpq-fe.h"

@@ -1,4 +1,6 @@
 *~
 *.o
 *.so
+*.pc
+*.a
 sql/pg_web--*.sql

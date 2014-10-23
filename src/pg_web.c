@@ -95,6 +95,8 @@ pg_web_main(Datum main_arg)
   BackgroundWorkerInitializeConnection("postgres", NULL);
 
   ereport( INFO, (errmsg( "Start web server on port %s\n", pg_web_setting_port_str )));
+  
+  start_server();
 
   /* begin loop */
   while (!got_sigterm)

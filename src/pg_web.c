@@ -59,6 +59,7 @@ static void onLine(dyad_Event *e) {
   if (sscanf(e->data, "GET %127s", path) == 1) {
     /* Print request */
     printf("%s %s\n", dyad_getAddress(e->stream), path);
+    elog(LOG, "Hello from pg_web! By I should be a HTTP server."); /* Say Hello to the world */
     /* Send header */
     dyad_writef(e->stream, "HTTP/1.1 200 OK\r\n");
     dyad_writef(e->stream, "Content-Type:text/html; charset=utf-8\r\n");
@@ -164,7 +165,7 @@ pg_web_main(Datum main_arg)
     //int rc;
     
     dyad_update();
-
+    
     /* Wait 10s */
     /*
     rc = WaitLatch(&MyProc->procLatch,
@@ -177,11 +178,6 @@ pg_web_main(Datum main_arg)
     if (rc & WL_POSTMASTER_DEATH)
       pg_web_exit(1);
     */
-    /*
-    if (WL_POSTMASTER_DEATH)
-      pg_web_exit(1);
-    */
-    elog(LOG, "Hello from pg_web! By I should be a HTTP server."); /* Say Hello to the world */
   }
   
   pg_web_exit(0);

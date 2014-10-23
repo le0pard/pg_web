@@ -33,6 +33,8 @@
 #include "utils/snapmgr.h"
 
 /* web server */
+#include <stdio.h>
+#include <time.h>
 #include "dyad.h"
 
 /* Essential for shared libs! */
@@ -136,6 +138,8 @@ static void
 pg_web_main(Datum main_arg)
 {
 
+  dyad_Stream *s;
+
   /* Set up the sigterm signal before unblocking them */
   pqsignal(SIGTERM, pg_web_sigterm);
 
@@ -147,9 +151,7 @@ pg_web_main(Datum main_arg)
 
   ereport( INFO, (errmsg( "Start web server on port %s\n", pg_web_setting_port_str )));
   
-  dyad_Stream *s;
   dyad_init();
-
   s = dyad_newStream();
   dyad_addListener(s, DYAD_EVENT_ERROR,  onError,  NULL);
   dyad_addListener(s, DYAD_EVENT_ACCEPT, onAccept, NULL);

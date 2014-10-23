@@ -21,5 +21,4 @@
 #include <stddef.h>
 #include <stdio.h>
 
-
-#include "vendors/dyad/dyad.h"
+void start_server(void);

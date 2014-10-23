@@ -4,3 +4,5 @@
 *.pc
 *.a
 sql/pg_web--*.sql
+.vagrant
+Vagrantfile

@@ -69,7 +69,7 @@ static void onLine(dyad_Event *e) {
                              "<a href='/date'>date</a><br>"
                              "<a href='/count'>count</a><br>"
                              "<a href='/ip'>ip</a>"
-                             "</pre></html></body>" );
+                             "</pre></body></html>" );
 
     } else if (!strcmp(path, "/date")) {
       time_t t = time(0);

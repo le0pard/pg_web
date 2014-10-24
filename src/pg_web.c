@@ -33,9 +33,8 @@
 #include "utils/snapmgr.h"
 
 /* web server */
-#include <stdio.h>
-#include <time.h>
 #include "dyad.h"
+#include "pg_web_handler.h"
 
 /* Essential for shared libs! */
 PG_MODULE_MAGIC;
@@ -49,58 +48,6 @@ static volatile sig_atomic_t got_sigterm = false;
 /* GUC variables */
 static int pg_web_setting_port; //http port int
 static char pg_web_setting_port_str[5]; //http port str
-
-/* web server */
-
-static int count = 0;
-
-static void onLine(dyad_Event *e) {
-  char path[128];
-  if (sscanf(e->data, "GET %127s", path) == 1) {
-    /* Print request */
-    printf("%s %s\n", dyad_getAddress(e->stream), path);
-    elog(LOG, "Hello from pg_web! By I should be a HTTP server."); /* Say Hello to the world */
-    /* Send header */
-    dyad_writef(e->stream, "HTTP/1.1 200 OK\r\n");
-    dyad_writef(e->stream, "Content-Type:text/html; charset=utf-8\r\n");
-    dyad_writef(e->stream, "\r\n");
-    /* Handle request */
-    if (!strcmp(path, "/")) {
-      dyad_writef(e->stream, "<html><body><pre>"
-                             "<a href='/date'>date</a><br>"
-                             "<a href='/count'>count</a><br>"
-                             "<a href='/ip'>ip</a>"
-                             "</pre></body></html>" );
-
-    } else if (!strcmp(path, "/date")) {
-      time_t t = time(0);
-      dyad_writef(e->stream, "%s", ctime(&t));
-
-    } else if (!strcmp(path, "/count")) {
-      dyad_writef(e->stream, "%d", ++count);
-
-    } else if (!strcmp(path, "/ip")) {
-      dyad_writef(e->stream, "%s", dyad_getAddress(e->stream));
-
-    } else {
-      dyad_writef(e->stream, "bad request '%s'", path);
-    }
-    /* Close stream when all data has been sent */
-    dyad_end(e->stream);
-  }
-}
-
-static void onAccept(dyad_Event *e) {
-  dyad_addListener(e->remote, DYAD_EVENT_LINE, onLine, NULL);
-}
-
-static void onListen(dyad_Event *e) {
-  printf("server listening: http://localhost:%d\n", dyad_getPort(e->stream));
-}
-
-static void onError(dyad_Event *e) {
-  printf("server error: %s\n", e->msg);
-}
 
 /*
  * pg_web_sigterm
@@ -154,9 +101,9 @@ pg_web_main(Datum main_arg)
   
   dyad_init();
   s = dyad_newStream();
-  dyad_addListener(s, DYAD_EVENT_ERROR,  onError,  NULL);
-  dyad_addListener(s, DYAD_EVENT_ACCEPT, onAccept, NULL);
-  dyad_addListener(s, DYAD_EVENT_LISTEN, onListen, NULL);
+  dyad_addListener(s, DYAD_EVENT_ERROR,  onWebError,  NULL);
+  dyad_addListener(s, DYAD_EVENT_ACCEPT, onWebAccept, NULL);
+  dyad_addListener(s, DYAD_EVENT_LISTEN, onWebListen, NULL);
   dyad_listen(s, pg_web_setting_port);
 
   /* begin loop */
